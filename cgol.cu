@@ -2,32 +2,89 @@
 #include <time.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define N 16
-__global__ void play(int *in, int *out)
+
+__global__ void play_with_row_based_index(int *in, int *out, int size)
 {
     int bid = blockIdx.x;
 	int tid = threadIdx.x;
 	int bdim = blockDim.x;
 	int live_cells = 0;
-    if (bid * bdim + tid < 16)
+	int max = size * size;
+	int my_id = bid * bdim + tid;
+	int mod = my_id % size;
+	// Check to see if the index is correct
+	if (mod != 0 && my_id + size < max && in[my_id + size - 1])						// Top left
+	{
+		live_cells++;
+	}
+	if (my_id + size < max && in[my_id + size])										// Top
+	{
+		live_cells++;
+	}
+	if (mod != size - 1 && my_id + size < max && in[my_id + size + 1])				// Top right
+	{
+		live_cells++;	
+	}
+	if (mod != 0 && in[my_id - 1])													// Left
+	{
+		live_cells++;	
+	}
+	if (mod != size - 1 && in[my_id + 1])											// Right
+	{
+		live_cells++;	
+	}
+	if (my_id - size>= 0 && mod != 0 && in[my_id - size - 1])						// Bottom left
+	{
+		live_cells++;	
+	}
+	if (my_id - size >= 0 && in[my_id - size])										// Bottom
+	{
+		live_cells++;	
+	}
+	if (my_id - size >= 0 && mod != size - 1 && in[my_id - size + 1])				// Bottom right
+	{
+		live_cells++;	
+	}
+
+	int is_live = in[my_id];
+	out[my_id] = is_live;
+	if ((is_live && live_cells < 2) || (is_live && live_cells > 3))
+	{
+		out[my_id] = 0;
+	}
+	else if (!is_live && live_cells == 3)
+	{
+		out[my_id] = 1;	
+	}
+	__syncthreads();
+}
+
+__global__ void play(int *in, int *out)
+{
+    int bid = blockIdx.x;
+	int tid = threadIdx.x;
+	int bdim = blockDim.x;
+	int gdim = gridDim.x;
+	int live_cells = 0;
+    if (bid * bdim + tid < bdim * gdim)
     {
 		// Check to see if the index is correct
 		if (bid != 0 && tid != 0 && in[(bid - 1) * bdim + (tid - 1)])
 				live_cells++; //Top left
 		if (bid != 0 && in[(bid - 1) * bdim + tid])
 				live_cells++; //Top	
-		if (bid != 0 && tid != 3 && in[(bid - 1) * bdim + (tid + 1)])
+		if (bid != 0 && tid != bdim - 1 && in[(bid - 1) * bdim + (tid + 1)])
 				live_cells++; //Top right
 		if (tid != 0 && in[(bid) * bdim + (tid - 1)])
 				live_cells++; //left
 		//Skipping itself
-		if (tid != 3 && in[(bid) * bdim + (tid + 1)])
+		if (tid != bdim - 1 && in[(bid) * bdim + (tid + 1)])
 				live_cells++; //Right
-		if (bid != 3 && tid != 0 && in[(bid + 1) * bdim + (tid - 1)])
+		if (bid != gdim - 1 && tid != 0 && in[(bid + 1) * bdim + (tid - 1)])
 				live_cells++; //Bottom left
-		if (bid != 3 && in[(bid + 1) * bdim + tid])
+		if (bid != gdim - 1 && in[(bid + 1) * bdim + tid])
 				live_cells++; //Bottom
-		if (bid != 3 && tid != 3 && in[(bid + 1) * bdim + (tid + 1)])
+		if (bid != gdim - 1 && tid != bdim - 1 && in[(bid + 1) * bdim + (tid + 1)])
 				live_cells++; //Bottom right
 
 		int is_live = in[bid * bdim + tid];
@@ -59,11 +116,11 @@ void print_board(int board[], int size, int iteration)
 			{
 				if (board[i * size + j])
 				{
-					printf("\u25A3");		
+					printf("\u25A3 ");		
 				}
 				else
 				{
-					printf("\u25A2");
+					printf("\u25A2 ");
 				}
 			}
 		}
@@ -74,19 +131,29 @@ void print_board(int board[], int size, int iteration)
 
 int main(void) 
 {
-	srand(time(NULL));
-	//srand(2);
-	int size = 4;
-	int iterations = 100;
-	int no_blocks = 4;
-	int no_threads = 4;
-    int input[N], output[N];
+	/*
+	while ((opt = getopt(argc, argv, "ilw")) != -1)
+	{
+		switch (opt)	
+		{
+				
+		}
+	}
+	*/
+	//srand(time(NULL));
+	srand(6);
+	int size = 32;
+	int iterations = 20;
+	int no_blocks = 8;
+	int no_threads = 128;
+	int *input = (int*)calloc(size * size, sizeof(int));
+	int *output = (int*)calloc(size * size, sizeof(int));
 	//int input[16] = {1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0};
     int *devin, *devout, *devtemp;
 
-    cudaMalloc((void**)&devin, N*sizeof(int));
-    cudaMalloc((void**)&devout, N*sizeof(int));
-	cudaMalloc((void**)&devtemp, N*sizeof(int));
+    cudaMalloc((void**)&devin, size * size * sizeof(int));
+    cudaMalloc((void**)&devout, size * size * sizeof(int));
+	cudaMalloc((void**)&devtemp, size * size * sizeof(int));
 
     for (int i = 0;i < size; i++)
     {
@@ -105,17 +172,17 @@ int main(void)
 	{
 		if (i == 0)
 		{
-			play<<<no_blocks,no_threads>>>(devin, devout);
+			play_with_row_based_index<<<no_blocks,no_threads>>>(devin, devout, size);
 		}
 		else
 		{
-			play<<<no_blocks,no_threads>>>(devtemp, devout);
+			play_with_row_based_index<<<no_blocks,no_threads>>>(devtemp, devout, size);
 		}
 		cudaMemcpy(devtemp, devout, size * size * sizeof(int), cudaMemcpyDeviceToDevice);
 		cudaMemcpy(output, devout, size * size * sizeof(int), cudaMemcpyDeviceToHost);
-		system("clear");
+		//system("clear");
 		print_board(output, size, i);
-		usleep(150000);
+		usleep(100000);
 	}
 
 	// Copy back the output
