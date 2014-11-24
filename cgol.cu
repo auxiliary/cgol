@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <time.h>
-#include <stdlib.h>>
+#include <stdlib.h>
+#include <unistd.h>
 #define N 16
 __global__ void play(int *in, int *out)
 {
@@ -43,8 +44,9 @@ __global__ void play(int *in, int *out)
 	__syncthreads();
 }
 
-void print_board(int board[], int size)
+void print_board(int board[], int size, int iteration)
 {
+	printf("Iteration %d\n", iteration);
     for (int i = 0;i < size; i++)
     {
 		for (int j = 0; j < size; j++)
@@ -57,11 +59,11 @@ void print_board(int board[], int size)
 			{
 				if (board[i * size + j])
 				{
-					printf("\u25A0");		
+					printf("\u25A3");		
 				}
 				else
 				{
-					printf("\u25A1");
+					printf("\u25A2");
 				}
 			}
 		}
@@ -72,8 +74,8 @@ void print_board(int board[], int size)
 
 int main(void) 
 {
-	//srand(time(NULL));
-	srand(2);
+	srand(time(NULL));
+	//srand(2);
 	int size = 4;
 	int iterations = 100;
 	int no_blocks = 4;
@@ -93,7 +95,7 @@ int main(void)
 			input[i*size + j] = rand() % 2;
 		}
     }
-	print_board(input, size);
+	print_board(input, size, 0);
 
     cudaMemcpy(devin, input, size * size * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(devout, output, size * size * sizeof(int), cudaMemcpyHostToDevice);
@@ -110,18 +112,21 @@ int main(void)
 			play<<<no_blocks,no_threads>>>(devtemp, devout);
 		}
 		cudaMemcpy(devtemp, devout, size * size * sizeof(int), cudaMemcpyDeviceToDevice);
-		//cudaMemcpy(output, devout, size * size * sizeof(int), cudaMemcpyDeviceToHost);
-		//print_board(output, size);
+		cudaMemcpy(output, devout, size * size * sizeof(int), cudaMemcpyDeviceToHost);
+		system("clear");
+		print_board(output, size, i);
+		usleep(150000);
 	}
 
 	// Copy back the output
     cudaMemcpy(output, devout, size * size * sizeof(int), cudaMemcpyDeviceToHost);
 
-	print_board(output, size);
+	print_board(output, size, iterations);
 
 	// Free device memory
     cudaFree(devin);
     cudaFree(devout);
+	cudaFree(devtemp);
 
     return 0;
 }
