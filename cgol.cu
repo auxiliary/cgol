@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+int SIZE, ITERATIONS, ANIMATE, BLOCKS, THREADS, SEED, SHARED_MEMORY;
 __global__ void play_with_shared_memory(int *in, int *out, int size)
 {
     int bid = blockIdx.x;
@@ -207,24 +208,53 @@ void print_board(int board[], int size, int iteration)
 	printf("\n\n");
 }
 
-int simple()
+void arg_parse(int argc, char *argv[])
 {
-	/*
-	while ((opt = getopt(argc, argv, "ilw")) != -1)
+	int i = 1;
+	char c;
+	while(i < argc)
 	{
-		switch (opt)	
+		sscanf(argv[i++], "%c", &c);
+		if (c == 's')
 		{
-				
+			sscanf(argv[i++], "%d", &SIZE);
+		}
+		if (c == 'a')
+		{
+			ANIMATE = 1;	
+			printf("fu");
+		}
+		if (c == 'i')
+		{
+			sscanf(argv[i++], "%d", &ITERATIONS);
+		}
+		if (c == 'b')
+		{
+			sscanf(argv[i++], "%d", &BLOCKS);
+		}
+		if (c == 't')
+		{
+			sscanf(argv[i++], "%d", &THREADS);
+		}
+		if (c == 'e')
+		{
+			sscanf(argv[i++], "%d", &SEED);
+		}
+		if (c == 'h')
+		{
+			SHARED_MEMORY = 1;
 		}
 	}
-	*/
-	int animate = true;
-	srand(time(NULL));
-	//srand(6);
-	int size = 32;
-	int iterations = 1000;
-	int no_blocks = 32;
-	int no_threads = 32;
+}
+
+int run()
+{
+	int animate = ANIMATE != -1 ? ANIMATE : false;
+	int size = SIZE ? SIZE : 32;
+	int iterations = ITERATIONS ? ITERATIONS : 30;
+	int no_blocks = BLOCKS ? BLOCKS : size;
+	int no_threads = THREADS ? THREADS : size;
+	srand(SEED != -1 ? SEED : time(NULL));
 	int *input = (int*)calloc(size * size, sizeof(int));
 	int *output = (int*)calloc(size * size, sizeof(int));
 	/*int input[16] = {	0, 0, 0, 0, 
@@ -244,14 +274,15 @@ int simple()
 			input[i*size + j] = rand() % 2;
 		}
     }
-	if (animate == true)
-		print_board(input, size, 0);
+
+	print_board(input, size, 0);
 
     cudaMemcpy(devin, input, size * size * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(devout, output, size * size * sizeof(int), cudaMemcpyHostToDevice);
 
 	int shared_board_size = (no_threads + 2 * size) * sizeof(int);
 	// Call the kernel for one iteration
+	clock_t start = clock(), diff;
 	for (int i = 0;i<iterations;i++)
 	{
 		if (i == 0)
@@ -276,9 +307,12 @@ int simple()
 
 	// Copy back the output
     cudaMemcpy(output, devout, size * size * sizeof(int), cudaMemcpyDeviceToHost);
+	
+	diff = clock() - start;
+	int msec = diff * 1000 / CLOCKS_PER_SEC;
+	printf("Time in kernel: %d seconds %d milliseconds\n", msec / 1000, msec % 1000);
 
-	if (animate == true)
-		print_board(output, size, iterations);
+	print_board(output, size, iterations);
 
 	// Free device memory
     cudaFree(devin);
@@ -288,12 +322,10 @@ int simple()
     return 0;
 }
 
-int main(void)
+int main(int argc, char* argv[])
 {
-	clock_t start = clock(), diff;
-	simple();
-	diff = clock() - start;
-	int msec = diff * 1000 / CLOCKS_PER_SEC;
-	printf("Time taken: %d seconds %d milliseconds\n", msec / 1000, msec % 1000);
+	SIZE = 0, ITERATIONS = 0, ANIMATE = -1, BLOCKS = 0, THREADS = 0, SHARED_MEMORY = 0, SEED = -1;
+	arg_parse(argc, argv);
+	run();
 	return 0;
 }
