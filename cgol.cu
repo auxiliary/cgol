@@ -2,181 +2,11 @@
 #include <time.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "optimized_kernel.h"
+#include "simple_kernel.h"
+#include "natural_indexed_kernel.h"
 
-int SIZE, ITERATIONS, ANIMATE, BLOCKS, THREADS, SEED, SHARED_MEMORY;
-__global__ void play_with_shared_memory(int *in, int *out, int size)
-{
-    int bid = blockIdx.x;
-	int tid = threadIdx.x;
-	int bdim = blockDim.x;
-	int live_cells = 0;
-	int max = size * size;
-	int my_id = bid * bdim + tid;
-	int mod = my_id % size;
-	extern __shared__ int local_board[];
-
-	local_board[tid + size] = in[my_id];
-	// Grab neighbors from next block if possible
-	if (my_id % bdim >= bdim - size && my_id + size < max)
-	{
-		local_board[tid + 2 * size] = in[my_id + size];
-	}
-	// Grab neighbors from previous block if possible
-	if (my_id % bdim < size && my_id - size >= 0)
-	{
-		local_board[tid] = in[my_id - size];
-	}
-	// Local Id
-	int lid = tid + size;
-	__syncthreads();
-
-	// Check to see if the index is correct
-	if (mod != 0 && my_id + size < max && local_board[lid + size - 1])						// Top left
-	{
-		live_cells++;
-	}
-	if (my_id + size < max && local_board[lid + size])													// Top
-	{
-		live_cells++;
-	}
-	if (mod != size - 1 && my_id + size < max && local_board[lid + size + 1])				// Top right
-	{
-		live_cells++;	
-	}
-	if (mod != 0 && local_board[lid - 1])													// Left
-	{
-		live_cells++;	
-	}
-	if (mod != size - 1 && local_board[lid + 1])											// Right
-	{
-		live_cells++;	
-	}
-	if (my_id - size>= 0 && mod != 0 && local_board[lid - size - 1])						// Bottom left
-	{
-		live_cells++;	
-	}
-	if (my_id - size >= 0 && local_board[lid - size])										// Bottom
-	{
-		live_cells++;	
-	}
-	if (my_id - size >= 0 && mod != size - 1 && local_board[lid - size + 1])				// Bottom right
-	{
-		live_cells++;	
-	}
-
-	int is_live = local_board[lid];
-	int result = is_live;
-	if ((is_live && live_cells < 2) || (is_live && live_cells > 3))
-	{
-		result = 0;
-	}
-	else if (!is_live && live_cells == 3)
-	{
-		result = 1;	
-	}
-	out[my_id] = result;
-
-	__syncthreads();
-}
-
-__global__ void play_with_row_based_index(int *in, int *out, int size)
-{
-    int bid = blockIdx.x;
-	int tid = threadIdx.x;
-	int bdim = blockDim.x;
-	int live_cells = 0;
-	int max = size * size;
-	int my_id = bid * bdim + tid;
-	int mod = my_id % size;
-	// Check to see if the index is correct
-	if (mod != 0 && my_id + size < max && in[my_id + size - 1])						// Top left
-	{
-		live_cells++;
-	}
-	if (my_id + size < max && in[my_id + size])										// Top
-	{
-		live_cells++;
-	}
-	if (mod != size - 1 && my_id + size < max && in[my_id + size + 1])				// Top right
-	{
-		live_cells++;	
-	}
-	if (mod != 0 && in[my_id - 1])													// Left
-	{
-		live_cells++;	
-	}
-	if (mod != size - 1 && in[my_id + 1])											// Right
-	{
-		live_cells++;	
-	}
-	if (my_id - size>= 0 && mod != 0 && in[my_id - size - 1])						// Bottom left
-	{
-		live_cells++;	
-	}
-	if (my_id - size >= 0 && in[my_id - size])										// Bottom
-	{
-		live_cells++;	
-	}
-	if (my_id - size >= 0 && mod != size - 1 && in[my_id - size + 1])				// Bottom right
-	{
-		live_cells++;	
-	}
-
-	int is_live = in[my_id];
-	out[my_id] = is_live;
-	if ((is_live && live_cells < 2) || (is_live && live_cells > 3))
-	{
-		out[my_id] = 0;
-	}
-	else if (!is_live && live_cells == 3)
-	{
-		out[my_id] = 1;	
-	}
-	__syncthreads();
-}
-
-__global__ void play(int *in, int *out)
-{
-    int bid = blockIdx.x;
-	int tid = threadIdx.x;
-	int bdim = blockDim.x;
-	int gdim = gridDim.x;
-	int live_cells = 0;
-    if (bid * bdim + tid < bdim * gdim)
-    {
-		// Check to see if the index is correct
-		if (bid != 0 && tid != 0 && in[(bid - 1) * bdim + (tid - 1)])
-				live_cells++; //Top left
-		if (bid != 0 && in[(bid - 1) * bdim + tid])
-				live_cells++; //Top	
-		if (bid != 0 && tid != bdim - 1 && in[(bid - 1) * bdim + (tid + 1)])
-				live_cells++; //Top right
-		if (tid != 0 && in[(bid) * bdim + (tid - 1)])
-				live_cells++; //left
-		//Skipping itself
-		if (tid != bdim - 1 && in[(bid) * bdim + (tid + 1)])
-				live_cells++; //Right
-		if (bid != gdim - 1 && tid != 0 && in[(bid + 1) * bdim + (tid - 1)])
-				live_cells++; //Bottom left
-		if (bid != gdim - 1 && in[(bid + 1) * bdim + tid])
-				live_cells++; //Bottom
-		if (bid != gdim - 1 && tid != bdim - 1 && in[(bid + 1) * bdim + (tid + 1)])
-				live_cells++; //Bottom right
-
-		int is_live = in[bid * bdim + tid];
-		out[bid * bdim + tid] = is_live;
-		if ((is_live && live_cells < 2) || (is_live && live_cells > 3))
-		{
-			out[bid * bdim + tid] = 0;
-		}
-		else if (!is_live && live_cells == 3)
-		{
-			out[bid * bdim + tid] = 1;	
-		}
-    }
-	__syncthreads();
-}
-
+int SIZE, ITERATIONS, ANIMATE, BLOCKS, THREADS, SEED, UNOPTIMIZED, PRINT;
 void print_board(int board[], int size, int iteration)
 {
 	if (iteration != -1)
@@ -240,9 +70,13 @@ void arg_parse(int argc, char *argv[])
 		{
 			sscanf(argv[i++], "%d", &SEED);
 		}
-		if (c == 'h')
+		if (c == 'u')
 		{
-			SHARED_MEMORY = 1;
+			UNOPTIMIZED = 1;
+		}
+		if (c == 'p')
+		{
+			sscanf(argv[i++], "%d", &PRINT);
 		}
 	}
 }
@@ -254,19 +88,23 @@ int run()
 	int iterations = ITERATIONS ? ITERATIONS : 30;
 	int no_blocks = BLOCKS ? BLOCKS : size;
 	int no_threads = THREADS ? THREADS : size;
+	int unoptimized_run = UNOPTIMIZED ? UNOPTIMIZED : 0;
+	int print = PRINT != -1 ? PRINT : true;
+
+	// Initialize random seed
 	srand(SEED != -1 ? SEED : time(NULL));
+
+	// Allocate space on host
 	int *input = (int*)calloc(size * size, sizeof(int));
 	int *output = (int*)calloc(size * size, sizeof(int));
-	/*int input[16] = {	0, 0, 0, 0, 
-						1, 1, 1, 1, 
-						0, 0, 0, 0, 
-						0, 0, 0, 0};*/
     int *devin, *devout, *devtemp;
 
+	// Allocate space on device
     cudaMalloc((void**)&devin, size * size * sizeof(int));
     cudaMalloc((void**)&devout, size * size * sizeof(int));
 	cudaMalloc((void**)&devtemp, size * size * sizeof(int));
 
+	// Generate random input
     for (int i = 0;i < size; i++)
     {
 		for (int j = 0; j < size; j++)
@@ -275,44 +113,72 @@ int run()
 		}
     }
 
-	print_board(input, size, 0);
+	if (print)
+		print_board(input, size, 0);
 
+	// Copy from host to device
     cudaMemcpy(devin, input, size * size * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(devout, output, size * size * sizeof(int), cudaMemcpyHostToDevice);
 
 	int shared_board_size = (no_threads + 2 * size) * sizeof(int);
-	// Call the kernel for one iteration
+	// Call the chosen kernel and time the run
 	clock_t start = clock(), diff;
-	for (int i = 0;i<iterations;i++)
+	if (unoptimized_run)
 	{
-		if (i == 0)
+		printf("Unoptimized run");
+		for (int i = 0;i<iterations;i++)
 		{
-			//play_with_row_based_index<<<no_blocks,no_threads,shared_board_size>>>(devin, devout, size);
-			play_with_shared_memory<<<no_blocks,no_threads,shared_board_size>>>(devin, devout, size);
+			if (i == 0)
+			{
+				play_with_row_based_index<<<no_blocks,no_threads>>>(devin, devout, size);
+			}
+			else
+			{
+				play_with_row_based_index<<<no_blocks,no_threads>>>(devtemp, devout, size);
+			}
+			cudaMemcpy(devtemp, devout, size * size * sizeof(int), cudaMemcpyDeviceToDevice);
+			cudaMemcpy(output, devout, size * size * sizeof(int), cudaMemcpyDeviceToHost);
+			if (animate == true)
+			{
+				system("clear");
+				print_board(output, size, i);
+				usleep(100000);
+			}
 		}
-		else
+	}
+	else
+	{
+		for (int i = 0;i<iterations;i++)
 		{
-			//play_with_row_based_index<<<no_blocks,no_threads,shared_board_size>>>(devtemp, devout, size);
-			play_with_shared_memory<<<no_blocks,no_threads,shared_board_size>>>(devtemp, devout, size);
-		}
-		cudaMemcpy(devtemp, devout, size * size * sizeof(int), cudaMemcpyDeviceToDevice);
-		cudaMemcpy(output, devout, size * size * sizeof(int), cudaMemcpyDeviceToHost);
-		if (animate == true)
-		{
-			system("clear");
-			print_board(output, size, i);
-			usleep(100000);
+			if (i == 0)
+			{
+				play_with_shared_memory<<<no_blocks,no_threads,shared_board_size>>>(devin, devout, size);
+			}
+			else
+			{
+				play_with_shared_memory<<<no_blocks,no_threads,shared_board_size>>>(devtemp, devout, size);
+			}
+			cudaMemcpy(devtemp, devout, size * size * sizeof(int), cudaMemcpyDeviceToDevice);
+			cudaMemcpy(output, devout, size * size * sizeof(int), cudaMemcpyDeviceToHost);
+			if (animate == true)
+			{
+				system("clear");
+				print_board(output, size, i);
+				usleep(100000);
+			}
 		}
 	}
 
 	// Copy back the output
     cudaMemcpy(output, devout, size * size * sizeof(int), cudaMemcpyDeviceToHost);
 	
+	if (print)
+		print_board(output, size, iterations);
+
+	// Calculate the time it took
 	diff = clock() - start;
 	int msec = diff * 1000 / CLOCKS_PER_SEC;
 	printf("Time in kernel: %d seconds %d milliseconds\n", msec / 1000, msec % 1000);
-
-	print_board(output, size, iterations);
 
 	// Free device memory
     cudaFree(devin);
@@ -324,8 +190,9 @@ int run()
 
 int main(int argc, char* argv[])
 {
-	SIZE = 0, ITERATIONS = 0, ANIMATE = -1, BLOCKS = 0, THREADS = 0, SHARED_MEMORY = 0, SEED = -1;
+	SIZE = 0, ITERATIONS = 0, ANIMATE = -1, BLOCKS = 0, THREADS = 0, UNOPTIMIZED = 0, SEED = -1, PRINT = -1;
 	arg_parse(argc, argv);
 	run();
 	return 0;
 }
+
