@@ -4,7 +4,7 @@
 	// nvopencc 4.1 built on 2013-07-17
 
 	//-----------------------------------------------------------
-	// Compiling /tmp/tmpxft_00003742_00000000-9_cgol.cpp3.i (/tmp/ccBI#.nnJnV3)
+	// Compiling /tmp/tmpxft_0000417e_00000000-9_cgol.cpp3.i (/tmp/ccBI#.FDepGz)
 	//-----------------------------------------------------------
 
 	//-----------------------------------------------------------
@@ -17,7 +17,7 @@
 	//-----------------------------------------------------------
 
 	.file	1	"<command-line>"
-	.file	2	"/tmp/tmpxft_00003742_00000000-8_cgol.cudafe2.gpu"
+	.file	2	"/tmp/tmpxft_0000417e_00000000-8_cgol.cudafe2.gpu"
 	.file	3	"/usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h"
 	.file	4	"/usr/local/cuda/bin/..//include/crt/device_runtime.h"
 	.file	5	"/usr/local/cuda/bin/..//include/host_defines.h"
