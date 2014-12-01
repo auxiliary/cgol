@@ -14,7 +14,7 @@ For this part I used nvprof using the following command:
 
 Invocations|Metric Name|Metric Description|Min|Max|Avg
 ---|---|---|---|---|---
-        100|                             ipc                    Executed IPC    2.034985    2.068992    2.056328
+        100|ipc|Executed IPC|2.034985|2.068992|2.056328
         100|                  gst_throughput|         Global Store Throughput|  5.3875GB/s|  9.4178GB/s|  6.1506GB/s
         100|                  gld_throughput|          Global Load Throughput|  39.110GB/s|  39.667GB/s|  39.460GB/s
         100|        shared_load_transactions|        Shared Load Transactions|           0|           0|           0
@@ -67,4 +67,4 @@ Total time in kernel = 1.229905 seconds
 ##### Optimized version:
 Total time in kernel = 0.978994 seconds
 
-One extra possible improvement can be to eliminate the IF statements and add paddings to the shared memory tiles that are copied from global memory. 
+One extra possible improvement can be to eliminate the IF statements and add paddings to the shared memory tiles that are copied from global memory.
