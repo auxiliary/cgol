@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <time.h>
+#include <sys/time.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "optimized_kernel.h"
@@ -122,10 +122,11 @@ int run()
 
 	int shared_board_size = (no_threads + 2 * size) * sizeof(int);
 	// Call the chosen kernel and time the run
-	clock_t start = clock(), diff;
+	struct timeval  tv1, tv2;
+	gettimeofday(&tv1, NULL);
 	if (unoptimized_run)
 	{
-		printf("Unoptimized run");
+		printf("Unoptimized run\n");
 		for (int i = 0;i<iterations;i++)
 		{
 			if (i == 0)
@@ -172,14 +173,13 @@ int run()
 	// Copy back the output
     cudaMemcpy(output, devout, size * size * sizeof(int), cudaMemcpyDeviceToHost);
 	
+	// Calculate the time it took
+	gettimeofday(&tv2, NULL);
+	printf ("Total time in kernel = %f seconds\n",(double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec));
+	
 	if (print)
 		print_board(output, size, iterations);
-
-	// Calculate the time it took
-	diff = clock() - start;
-	int msec = diff * 1000 / CLOCKS_PER_SEC;
-	printf("Time in kernel: %d seconds %d milliseconds\n", msec / 1000, msec % 1000);
-
+	
 	// Free device memory
     cudaFree(devin);
     cudaFree(devout);
