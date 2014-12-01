@@ -50,6 +50,12 @@ Invocations|Metric Name|Metric Description|Min|Max|Avg|
 
 *The number of global memory accesses has been dramatically reduced in the optimized version and the amount of shared memory used has increased.*
 
+The Number of instructions executed, IPC and number of control instructions are clear from the above tables. The number of single precision floating point operations are 0. Memory accesses are analyzed with more depth. The global load/store throughput and transactions as well as shared memory load/store throughput and transactions have been queried. The total number of load/store instructions can also be seen by the `ldst_executed` variable.
+
+There were no shared memory conflicts in the simple version.
+
+The off-chip memory bandwidth can be seen by the global load/store throughputs. 
+
 ## Part c)
 The improved version uses the kernel called `play_with_shared_memory`. This mode is the default mode when you run the program. The unoptimized version can be run using the `u` argument. The following runtime comparison is based on a 256x256 board with 100 iterations.
 
