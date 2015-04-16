@@ -16,28 +16,11 @@ Running arguments: `./cgol [s NUMBER] [i NUMBER] [t NUMBER] [b NUMBER] [e NUMBER
 - p: Print board (Default is true)
 - u: Run unoptimized version using global memory
 
-For example, to run a game with a 32x32 board for 100 iterations with animations, run
+For example, to run a game with a 16x16 board for 20 iterations with animations, run
 
-`./cgol s 32 i 100 a`
+`./cgol s 16 i 20 a`
 
 Here's a sample output of what the last iteration of a random board looks like.
-
-▢ ▢ ▣ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢<br>
-▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢<br>
-▣ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▣ ▣ ▢ ▢ ▢<br>
-▣ ▣ ▢ ▣ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▣ ▣ ▢ ▢ ▢<br>
-▢ ▣ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢<br>
-▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢<br>
-▢ ▢ ▢ ▢ ▣ ▢ ▣ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢<br>
-▢ ▣ ▢ ▢ ▣ ▣ ▣ ▣ ▢ ▢ ▣ ▣ ▢ ▢ ▢ ▢<br>
-▣ ▣ ▣ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▣ ▣ ▢ ▢ ▢ ▢<br>
-▣ ▢ ▢ ▣ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢<br>
-▣ ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢<br>
-▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢<br>
-▣ ▣ ▢ ▢ ▢ ▣ ▢ ▢ ▣ ▣ ▣ ▣ ▣ ▢ ▣ ▣<br>
-▢ ▣ ▣ ▣ ▢ ▣ ▢ ▢ ▣ ▣ ▣ ▣ ▢ ▢ ▢ ▣<br>
-▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▣ ▣ ▣ ▢<br>
-▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢<br>
 
 ![](cgol.gif?raw=true)
 
