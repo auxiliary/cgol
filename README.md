@@ -39,4 +39,6 @@ Here's a sample output of what the last iteration of a random board looks like.
 ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▣ ▣ ▣ ▢<br>
 ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢<br>
 
+![](cgol.gif?raw=true)
+
 This code was proudly tested using http://www.cuug.ab.ca/dewara/life/life.html
